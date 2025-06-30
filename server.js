@@ -39,6 +39,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+const redisTest = require('./api/redis-test');
+app.get('/api/redis-test', redisTest);
+
 // Handle all routes by serving index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
