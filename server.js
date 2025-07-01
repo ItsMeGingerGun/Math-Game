@@ -29,14 +29,17 @@ app.use('/api/redis-test', require('./api/redis-test'));
 app.use('/api/leaderboard', require('./api/leaderboard'));
 app.use('/api/game', require('./api/game'));
 
-// Serve static files
+// Serve static files with proper caching
 app.use(express.static(path.join(__dirname, 'public'), {
-  setHeaders: (res) => {
-    res.set('Cache-Control', 'public, max-age=3600');
+  maxAge: '1h',
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'public, max-age=0');
+    }
   }
 }));
 
-// Client-side routing fallback
+// Client-side routing fallback - Vercel-specific handling
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -51,19 +54,24 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode`);
-  console.log(`Listening on port ${PORT}`);
-  console.log(`Redis status: ${redisClient.isReady ? 'ready' : 'connecting'}`);
-});
+// Vercel requires module.exports for serverless functions
+module.exports = app;
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received: closing server');
-  await redisClient.quit();
-  server.close(() => {
-    console.log('Server terminated');
-    process.exit(0);
+// Only listen locally, not on Vercel
+if (process.env.VERCEL !== '1') {
+  const PORT = process.env.PORT || 3000;
+  const server = app.listen(PORT, () => {
+    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode`);
+    console.log(`Listening on port ${PORT}`);
   });
-});
+
+  // Graceful shutdown
+  process.on('SIGTERM', async () => {
+    console.log('SIGTERM received: closing server');
+    await redisClient.quit();
+    server.close(() => {
+      console.log('Server terminated');
+      process.exit(0);
+    });
+  });
+}
