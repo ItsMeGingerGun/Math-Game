@@ -16,8 +16,8 @@
       "dest": "server.js"
     }
   ],
+  "regions": ["iad1"],
   "env": {
-    "REDIS_URL": "@upstash-redis-url",
-    "NEYNAR_API_KEY": "@neynar-api-key"
+    "NODE_ENV": "production"
   }
 }
