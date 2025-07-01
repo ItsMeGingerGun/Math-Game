@@ -9,11 +9,15 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "dest": "server.js"
     },
     {
       "src": "/(.*)",
       "dest": "server.js"
     }
-  ]
+  ],
+  "env": {
+    "REDIS_URL": "@upstash-redis-url",
+    "NEYNAR_API_KEY": "@neynar-api-key"
+  }
 }
