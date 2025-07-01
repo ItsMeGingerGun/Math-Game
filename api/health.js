@@ -1,35 +1,39 @@
-const redisClient = require('../lib/redis')();
+import { createClient } from 'redis';
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
+  const start = Date.now();
+  
   try {
-    // Vercel-safe Redis check
-    const status = {
-      redis: 'disconnected',
-      latency: 'n/a'
-    };
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) throw new Error('REDIS_URL not set');
     
-    if (redisClient.isReady) {
-      const startTime = Date.now();
-      await redisClient.ping();
-      status.redis = 'connected';
-      status.latency = `${Date.now() - startTime}ms`;
-    }
+    const client = createClient({
+      url: redisUrl,
+      socket: {
+        connectTimeout: 2000,
+        tls: true,
+        rejectUnauthorized: false
+      }
+    });
     
+    await client.connect();
+    await client.ping();
+    const latency = Date.now() - start;
+    await client.quit();
+    
+    res.setHeader('Cache-Control', 'no-store');
     res.status(200).json({
       status: 'ok',
-      services: {
-        database: status,
-        farcaster: !!process.env.NEYNAR_API_KEY ? 'configured' : 'missing'
-      },
-      environment: process.env.NODE_ENV || 'development',
-      platform: process.env.VERCEL ? 'Vercel' : 'Local',
-      region: process.env.VERCEL_REGION || 'local'
+      redis: 'connected',
+      latency: `${latency}ms`,
+      environment: process.env.VERCEL_ENV || 'development'
     });
   } catch (error) {
-    res.status(503).json({
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(500).json({
       status: 'error',
       error: error.message,
-      platform: process.env.VERCEL ? 'Vercel' : 'Local'
+      solution: 'Check Redis configuration and Vercel env variables'
     });
   }
 };
