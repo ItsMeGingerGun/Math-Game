@@ -13,6 +13,10 @@ const redisClient = createClient({
   }
 });
 
+console.log('Environment Variables:');
+console.log(`REDIS_URL: ${process.env.REDIS_URL ? 'Set' : 'Not set'}`);
+console.log(`NEYNAR_API_KEY: ${process.env.NEYNAR_API_KEY ? 'Set' : 'Not set'}`);
+
 // Redis connection handler
 redisClient.on('error', (err) => console.error('Redis Client Error', err));
 redisClient.connect()
