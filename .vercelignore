@@ -1,0 +1,9 @@
+# Ignore everything except essential files
+*
+!server.js
+!api/
+!lib/
+!public/
+!package.json
+!package-lock.json
+!vercel.json
