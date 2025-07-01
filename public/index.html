@@ -1,38 +1,175 @@
-<!-- public/index.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Abacus Mind</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abacus Mind - Status</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f0f4ff;
+        :root {
+            --primary: #3a0ca3;
+            --success: #4cc9f0;
+            --error: #f72585;
+            --warning: #fca311;
         }
-        .container {
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+        }
+        header {
             text-align: center;
+            margin-bottom: 2rem;
         }
         h1 {
-            color: #3a0ca3;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
         }
-        .status {
-            padding: 20px;
+        .status-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
             background: white;
             border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card h2 {
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        .status-operational {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status-down {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .endpoint-list {
+            list-style: none;
+            padding: 0;
+        }
+        .endpoint-list li {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .endpoint-list li:last-child {
+            border-bottom: none;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.7rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #2c0a8a;
+        }
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: #6c757d;
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <header>
         <h1>Abacus Mind</h1>
-        <div class="status">
-            <p>Frontend is working!</p>
-            <p>Check API status: <a href="/api/health">/api/health</a></p>
+        <p>Math Game Platform</p>
+    </header>
+    
+    <main>
+        <div class="status-container">
+            <div class="card">
+                <h2>Frontend <span class="status-badge status-operational">Operational</span></h2>
+                <p>Client interface is fully functional</p>
+            </div>
+            
+            <div class="card">
+                <h2>API Status</h2>
+                <ul class="endpoint-list">
+                    <li>
+                        Health Check 
+                        <a href="/api/health" class="btn" target="_blank">Test</a>
+                    </li>
+                    <li>
+                        Redis Connection
+                        <a href="/api/redis-test" class="btn" target="_blank">Test</a>
+                    </li>
+                </ul>
+            </div>
         </div>
-    </div>
+        
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="https://github.com/ItsMeGingerGun/Math-Game" class="btn" target="_blank">
+                View on GitHub
+            </a>
+        </div>
+    </main>
+    
+    <footer>
+        <p>Environment: <strong>{{ENV}}</strong> | Server: <strong>{{HOSTNAME}}</strong></p>
+        <p id="timestamp">Loaded at: </p>
+    </footer>
+
+    <script>
+        // Add environment info
+        document.querySelector('footer p').innerHTML = 
+            document.querySelector('footer p').innerHTML
+            .replace('{{ENV}}', window.location.host.includes('vercel') ? 'Production' : 'Development')
+            .replace('{{HOSTNAME}}', window.location.hostname);
+            
+        // Add load timestamp
+        document.getElementById('timestamp').textContent += new Date().toLocaleString();
+        
+        // Periodically check health status
+        async function checkHealth() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                const statusEl = document.querySelector('.status-operational');
+                if(data.redis.status === 'connected') {
+                    statusEl.textContent = 'All Systems Operational';
+                } else {
+                    statusEl.className = 'status-badge status-down';
+                    statusEl.textContent = 'Redis Down';
+                }
+            } catch (e) {
+                console.error('Health check failed:', e);
+            }
+        }
+        
+        // Initial check
+        checkHealth();
+        
+        // Check every 30 seconds
+        setInterval(checkHealth, 30000);
+    </script>
 </body>
 </html>
