@@ -1,55 +1,69 @@
 require('dotenv').config();
 const express = require('express');
-const app = express();
 const path = require('path');
-const { createClient } = require('redis');
+const cors = require('cors');
+const helmet = require('helmet');
+const redisClient = require('./lib/redis')();
 
-// Create Redis client
-const redisClient = createClient({
-  url: process.env.REDIS_URL,
-  socket: {
-    tls: true,
-    rejectUnauthorized: false
+const app = express();
+
+// Security middleware
+app.use(cors());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"]
+    }
   }
-});
-
-console.log('Environment Variables:');
-console.log(`REDIS_URL: ${process.env.REDIS_URL ? 'Set' : 'Not set'}`);
-console.log(`NEYNAR_API_KEY: ${process.env.NEYNAR_API_KEY ? 'Set' : 'Not set'}`);
-
-// Redis connection handler
-redisClient.on('error', (err) => console.error('Redis Client Error', err));
-redisClient.connect()
-  .then(() => console.log('Redis connected successfully'))
-  .catch(err => console.error('Redis connection failed:', err));
+}));
 
 // Middleware
 app.use(express.json());
 
-// Serve static files from public directory
-app.use(express.static(path.join(__dirname, 'public')));
+// API Routes
+app.use('/api/health', require('./api/health'));
+app.use('/api/redis-test', require('./api/redis-test'));
+app.use('/api/leaderboard', require('./api/leaderboard'));
+app.use('/api/game', require('./api/game'));
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  const redisStatus = redisClient.isReady ? 'connected' : 'disconnected';
-  
-  res.status(200).json({
-    status: 'ok',
-    redis: redisStatus,
-    environment: {
-      REDIS_URL: !!process.env.REDIS_URL,
-      NEYNAR_API_KEY: !!process.env.NEYNAR_API_KEY
-    }
-  });
-});
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res) => {
+    res.set('Cache-Control', 'public, max-age=3600');
+  }
+}));
 
-// Handle all routes by serving index.html
+// Client-side routing fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(`[${new Date().toISOString()}]`, err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode`);
+  console.log(`Listening on port ${PORT}`);
   console.log(`Redis status: ${redisClient.isReady ? 'ready' : 'connecting'}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received: closing server');
+  await redisClient.quit();
+  server.close(() => {
+    console.log('Server terminated');
+    process.exit(0);
+  });
 });
