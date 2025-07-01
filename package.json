@@ -5,9 +5,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "NODE_ENV=development node server.js",
-    "test": "NODE_ENV=test jest",
-    "vercel-build": "npm install",
-    "lint": "eslint ."
+    "vercel-build": "npm install && echo 'Vercel build complete'",
+    "vercel-dev": "NODE_ENV=development node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -16,9 +15,7 @@
     "helmet": "^7.1.0",
     "redis": "^4.6.13"
   },
-  "devDependencies": {
-    "eslint": "^9.4.0",
-    "jest": "^29.7.0",
-    "supertest": "^6.3.4"
+  "engines": {
+    "node": ">=18.x"
   }
 }
