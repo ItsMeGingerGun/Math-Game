@@ -28,7 +28,5 @@
   "env": {
     "NODE_ENV": "production"
   }
-  {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
-}
+ 
 }
